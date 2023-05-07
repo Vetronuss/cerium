@@ -11,6 +11,12 @@
 #include <fstream>
 #include <locale>
 #include <codecvt>
+#include <ShlObj.h>
+#include <comdef.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <Windows.h>
 using namespace std;
 
 const string VERSION = "1.3.0";
@@ -33,16 +39,17 @@ std::string wstringToString(const std::wstring& wstr)
 	return str;
 }
 
+
 std::string createCeriumFolderAndBatFiles()
 {
-	TCHAR documentsPath[MAX_PATH];
-	HRESULT result = SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, documentsPath);
+    PWSTR documentsPath = nullptr;
+    HRESULT result = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &documentsPath);
 
-	if (result != S_OK)
-	{
-		std::cerr << "Error getting the Documents folder path." << std::endl;
-		return "";
-	}
+    if (result != S_OK)
+    {
+        std::cerr << "Error getting the Documents folder path." << std::endl;
+        return "";
+    }
 
 	std::wstring ceriumFolderPath = std::wstring(documentsPath) + L"\\Cerium";
 	if (CreateDirectory(ceriumFolderPath.c_str(), NULL) || ERROR_ALREADY_EXISTS == GetLastError())
@@ -69,12 +76,14 @@ std::string createCeriumFolderAndBatFiles()
 		loadCeriumBatFile << L"echo Cerium Loaded\n";
 		
 		loadCeriumBatFile.close();
-
+		// Free the memory allocated by SHGetKnownFolderPath
+		CoTaskMemFree(documentsPath);
 		return wstringToString(ceriumFolderPath);
 	}
 	else
 	{
 		std::cerr << "Error creating the Cerium folder." << std::endl;
+		CoTaskMemFree(documentsPath);
 		return "";
 	}
 }
@@ -617,7 +626,14 @@ void perform(Command cmd, vector<Command> all, vector<string> s, int index)
 	{
 	//update
 		cout << "Checking for update...\n";
-		
+		int a = system("cd %UserProfile%\\Documents\\Cerium && curl -L https://github.com/Vetronuss/cerium/releases/download/Latest/executer.exe -o c.exe");
+		if (a == 0)
+		{
+			cout << "Update failed. Download latest release from github\n";
+		}else
+		{
+			cout << "Updated successfully\n";
+		}
 	}
 }
 
